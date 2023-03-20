@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="frame_id" default="scan"/>
+  <arg name="scanner_ip" default="192.168.2.4"/>
+  <arg name="message_type" default="PointCloud2"/>
+
+
+
+ 
+  <!-- sr3D Driver -->
+  <node pkg="pepperl_fuchs_sr3d" type="sr3d_node" name="sr3d_node_2" respawn="true" output="screen">
+    <param name="frame_id" value="$(arg frame_id)"/>
+    <param name="scanner_ip" value="$(arg scanner_ip)"/>
+    <param name="message_type" value="$(arg message_type)"/> 
+
+  </node>
+
+  <!-- RVIZ -->
+  <node pkg="rviz" type="rviz" name="$(anon rviz)" respawn="false" output="screen" args="-d $(find pepperl_fuchs_sr3d)/rviz/rviz_PointCloud2.rviz"/>
+ 
+</launch>
