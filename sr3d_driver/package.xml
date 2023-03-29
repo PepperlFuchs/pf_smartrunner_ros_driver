@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>sr3d_driver</name>
+  <name>pepperl_fuchs_sr3d</name>
   <version>0.1.0</version>
   <description>The Pepperl+Fuchs SmartRunner 3-D driver package</description>
   <maintainer email="git@breeze-innovations.com">opensource-jhe@de.pepperl-fuchs.com</maintainer>
