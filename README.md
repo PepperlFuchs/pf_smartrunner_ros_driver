@@ -41,7 +41,7 @@ The following standard ROS messages are supported. The messages contain the meas
 2. Download the library from the Pepperl+Fuchs site.  
    (https://www.pepperl-fuchs.com/global/en/classid_9866.htm?view=productdetails&prodid=117291#software)
 3. Unzip the downloaded file and copy the folder "VsxSdk" in to the folder:  
-```<home>/catkin_ws/src/pf_sr3d_ros_driver/sr3d_driver/lib/```
+```<home>/catkin_ws/src/pf_sr3d_ros_driver/sr3d_driver/lib/```<br/>NOTE: For VsxSdk-version 3.0.6: Change directory to <br/>```<home>/catkin_ws/src/pf_sr3d_ros_driver/lib/VsxSdk/C/lib/linux-x64/``` and call <br/>```ln -s PF.VsxProtocolDriver.WrapperNE.so libPF.VsxProtocolDriver.WrapperNE.so```.
 4. Install .NET SDK.  
    (https://learn.microsoft.com/en-us/dotnet/core/install/linux-ubuntu-2004)
 5. Change to the workspace directory.  
@@ -52,14 +52,14 @@ The following standard ROS messages are supported. The messages contain the meas
 ```catkin_make install```
 
 #### Launch the driver
-1. Set the IP-Address (default 192.168.2.4) of the sensor in (for PointCloud):  
-```<home>/catkin_ws/src/pf_sr3d_ros_driver/sr3d_driver/launch/sr3d.launch```  
-or (for PointCloud2)  
+1. Set the IP-Address (default 192.168.2.4) of the sensor in (for PointCloud):
+```<home>/catkin_ws/src/pf_sr3d_ros_driver/sr3d_driver/launch/sr3d.launch```
+or (for PointCloud2)
 ```<home>/catkin_ws/src/pf_sr3d_ros_driver/sr3d_driver/launch/sr3d_2.launch```
-2. Run the command (for PointCloud):  
-```roslaunch pepperl_fuchs_sr3d sr3d.launch```  
-or (for PointCloud2)  
-```roslaunch pepperl_fuchs_sr3d sr3d_2.launch```  
+2. Run the command (for PointCloud):
+```roslaunch pepperl_fuchs_sr3d sr3d.launch```
+or (for PointCloud2)
+```roslaunch pepperl_fuchs_sr3d sr3d_2.launch```
 3. This starts `RViz` (http://wiki.ros.org/rviz) and the driver.
 4. The 3-D measure points coming from the sensor are shown in the window.
 
