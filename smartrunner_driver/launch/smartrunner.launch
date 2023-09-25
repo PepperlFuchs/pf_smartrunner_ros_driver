@@ -1,0 +1,76 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="frame_id" 				default="scan"/>
+  <arg name="device_ip" 			default="192.168.2.3"/>			<!-- Valid values: 	Smartrunner3D 	192.168.2.4 (default), 
+														Smartrunner 	192.168.2.3 (default) -->
+  
+  <!-- Parameters for SmartRunner3D TOF -->
+  <arg name="tof_trigger_source" 		default="AutoTrigger"/>			<!-- Valid values: AutoTrigger, Line1, Software	-->
+  <arg name="tof_auto_trigger_rate" 		default="20"/>		  		<!-- Valid values: 1 - 30 			-->
+  <arg name="tof_trigger_enable" 		default="1"/>				<!-- Valid values: 1 or 0 			-->
+  <arg name="tof_exposure_time" 		default="600"/>				<!-- Valid values: 150 - 1000 			-->
+  <arg name="tof_range_mode" 			default="3750"/>			<!-- Valid values: 1500, 3750 or 7500 		-->
+  <arg name="tof_output_mode" 			default="CalibratedABC_Grid_Amp"/>	<!-- Valid values: CalibratedABC_Grid_Amp 	-->
+
+  <!-- Parameters for SmartRunner3D Stereo -->
+  <arg name="stereo_trigger_source" 		default="AutoTrigger"/>			<!-- Valid values: AutoTrigger, Line1, Software -->
+  <arg name="stereo_auto_trigger_rate" 		default="10"/>		  		<!-- Valid values: 1 - 10 			-->
+  <arg name="stereo_trigger_enable" 		default="1"/>				<!-- Valid values: 1 or 0 			-->
+  <arg name="stereo_exposure_time" 		default="3000"/>			<!-- Valid values: 10 - 10000 			-->
+  <arg name="stereo_gain" 			default="100"/>				<!-- Valid values: 0 - 480 			-->
+  <arg name="stereo_uniqueness" 		default="20"/>				<!-- Valid values: 0 - 100 			-->
+  <arg name="stereo_output_mode" 		default="DisparityC"/>			<!-- Valid values: DisparityC 			-->
+
+  <!-- Parameters for SmartRunner -->
+  <arg name="smartrunner_autotrigger_enable" 		default="1"/>			<!-- Valid values: 1 or 0 			-->
+  <arg name="smartrunner_exposure_time" 		default="1000"/>		<!-- Valid values: 1 - 3000 			-->
+  <arg name="smartrunner_use_manual_exposure_time" 	default="1"/>			<!-- Valid values: 1 or 0 			-->
+  <arg name="smartrunner_flash_time" 			default="100"/>			<!-- Valid values: 1 or 10000 			-->
+  <arg name="smartrunner_object_contrast" 		default="45"/>			<!-- Valid values: 1 - 100 			-->
+  <arg name="smartrunner_roi_min_x" 			default="-50"/>			<!-- Valid values: -3200 - 3200 		-->
+  <arg name="smartrunner_roi_max_x" 			default="50"/>			<!-- Valid values: -3200 - 3200 		-->
+  <arg name="smartrunner_roi_min_z" 			default="100"/>			<!-- Valid values: 1 - 3200 			-->
+  <arg name="smartrunner_roi_max_z" 			default="350"/>			<!-- Valid values: 1 - 3200			-->
+  <arg name="smartrunner_image_transfer_active" 	default="0"/>			<!-- Valid values: 1 or 0			-->
+ 
+ 
+  <!-- Parameters for ROS-Dataformat -->
+  <arg name="message_type" default="PointCloud2"/>					<!-- Valid values: PointCloud or PointCloud2 	-->
+
+ 
+  <!-- ros node -->
+  <node pkg="pepperl_fuchs_smartrunner" type="smartrunner_node" name="smartrunner_node" respawn="true" output="screen">
+    <param name="frame_id" 				value="$(arg frame_id)"/>
+    <param name="device_ip" 				value="$(arg device_ip)"/>
+    <param name="message_type" 				value="$(arg message_type)"/> 
+    <param name="tof_trigger_source" 			value="$(arg tof_trigger_source)"/> 
+    <param name="tof_auto_trigger_rate" 		value="$(arg tof_auto_trigger_rate)"/> 
+    <param name="tof_trigger_enable" 			value="$(arg tof_trigger_enable)"/> 
+    <param name="tof_exposure_time" 			value="$(arg tof_exposure_time)"/> 
+    <param name="tof_range_mode" 			value="$(arg tof_range_mode)"/> 
+    <param name="tof_output_mode" 			value="$(arg tof_output_mode)"/> 
+    <param name="stereo_trigger_source" 		value="$(arg stereo_trigger_source)"/> 
+    <param name="stereo_auto_trigger_rate" 		value="$(arg stereo_auto_trigger_rate)"/> 
+    <param name="stereo_trigger_enable" 		value="$(arg stereo_trigger_enable)"/> 
+    <param name="stereo_exposure_time" 			value="$(arg stereo_exposure_time)"/> 
+    <param name="stereo_gain" 				value="$(arg stereo_gain)"/> 
+    <param name="stereo_uniqueness" 			value="$(arg stereo_uniqueness)"/> 
+    <param name="stereo_output_mode" 			value="$(arg stereo_output_mode)"/> 
+    <param name="smartrunner_autotrigger_enable" 	value="$(arg smartrunner_autotrigger_enable)"/> 
+    <param name="smartrunner_exposure_time" 		value="$(arg smartrunner_exposure_time)"/> 
+    <param name="smartrunner_use_manual_exposure_time" 	value="$(arg smartrunner_use_manual_exposure_time)"/> 
+    <param name="smartrunner_flash_time" 		value="$(arg smartrunner_flash_time)"/> 
+    <param name="smartrunner_object_contrast" 		value="$(arg smartrunner_object_contrast)"/> 
+    <param name="smartrunner_roi_min_x" 		value="$(arg smartrunner_roi_min_x)"/> 
+    <param name="smartrunner_roi_max_x" 		value="$(arg smartrunner_roi_max_x)"/> 
+    <param name="smartrunner_roi_min_z" 		value="$(arg smartrunner_roi_min_z)"/> 
+    <param name="smartrunner_roi_max_z" 		value="$(arg smartrunner_roi_max_z)"/> 
+    <param name="smartrunner_image_transfer_active" 	value="$(arg smartrunner_image_transfer_active)"/> 
+  
+
+</node>
+
+  <!-- RVIZ -->
+  <node pkg="rviz" type="rviz" name="$(anon rviz)" respawn="false" output="screen" args="-d $(find pepperl_fuchs_smartrunner)/rviz/$(arg message_type).rviz"/>
+ 
+</launch>

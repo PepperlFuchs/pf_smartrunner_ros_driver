@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <package>
-  <name>pepperl_fuchs_sr3d</name>
-  <version>0.1.0</version>
-  <description>The Pepperl+Fuchs SmartRunner 3-D driver package</description>
-  <maintainer email="git@breeze-innovations.com">opensource-jhe@de.pepperl-fuchs.com</maintainer>
+  <name>pepperl_fuchs_smartrunner</name>
+  <version>0.1.1</version>
+  <description>The Pepperl+Fuchs SmartRunner3D driver package</description>
+  <maintainer email="git@breeze-innovations.com">git@breeze-innovations.com</maintainer>
   <author email="git@breeze-innovations.com">git@breeze-innovations.com</author> 
-  <license>Apache-2.0</license>
-  <url type="repository">https://github.com/PepperlFuchs/pf_sr3d_ros_driver</url>
-
+  <license>BSD</license>
+  <url type="repository">https://github.com/x</url>
+ 
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>roscpp</build_depend>

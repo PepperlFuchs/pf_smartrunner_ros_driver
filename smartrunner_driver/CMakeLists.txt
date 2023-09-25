@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(pepperl_fuchs_sr3d)
+project(pepperl_fuchs_smartrunner)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -41,29 +41,26 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(sr3d_node
-  src/rosnode/sr3d_node.cpp
+add_executable(smartrunner_node
+  src/rosnode/smartrunner_node.cpp
 )
 
 find_library(VSX_LIB PF.VsxProtocolDriver.WrapperNE ${VSX_SDK_LIB_PATH})
 
-target_link_libraries(sr3d_node
+target_link_libraries(smartrunner_node
   ${catkin_LIBRARIES}
   ${VSX_LIB}
 )
-install(TARGETS sr3d_node
+install(TARGETS smartrunner_node
         RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
-install(FILES launch/sr3d.launch
+install(FILES launch/smartrunner.launch
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
 )
-install(FILES launch/sr3d_2.launch
-        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
-)
-install(FILES rviz/rviz_PointCloud.rviz
+install(FILES rviz/PointCloud.rviz
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/rviz
 )
-install(FILES rviz/rviz_PointCloud2.rviz
+install(FILES rviz/PointCloud2.rviz
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/rviz
 )
