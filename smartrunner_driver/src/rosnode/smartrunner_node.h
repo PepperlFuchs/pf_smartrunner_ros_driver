@@ -47,6 +47,54 @@ private:
     //! ROS subscriber for receiving control commands
     ros::Subscriber cmd_subscriber_;
 
+    //Common Parameters
+    std::string frame_id_               	="";
+    std::string device_ip_              	="";
+    std::string message_type_           	="";
+    float data_repetition_rate_           	=0.0;
+    std::string sensor                  	=""; 
+    const char* IP 				= NULL;
+    const char* sensor_type             	= NULL;
+    bool retValue                       	= false;
+    //Parameters for Vsx-Interface
+    VsxStatusCode status;
+    VsxSystemHandle* ptr_vsx            	= NULL;
+    VsxDataContainerHandle* dch         	= NULL;
+    VsxDevice* deviceData               	= NULL;
+    VsxParameterList* deviceParameters  	= NULL;
+    VsxImage* imageA                    	= NULL;
+    VsxImage* imageB                    	= NULL;
+    VsxImage* imageC                    	= NULL;
+    VsxLineData* lineData	            	= NULL;
+    VsxLineCoordinate* lineCoordinates  	= NULL; 
+    VsxImageData2Format format;
+    //Parameters for SmartRunner(3-D TOF)
+    std::string tof_trigger_source_             ="";
+    int tof_auto_trigger_rate_                  = 0;
+    int tof_trigger_enable_                     = 0;
+    int tof_exposure_time_                      = 0;
+    int tof_range_mode_                         = 0;
+    std::string tof_output_mode_                ="";
+    //Parameters for SmartRunner(3-D Stereo)
+    std::string stereo_trigger_source_          ="";
+    int stereo_auto_trigger_rate_               = 0;
+    int stereo_trigger_enable_                  = 0;
+    int stereo_exposure_time_                   = 0;
+    int stereo_gain_                            = 0;
+    int stereo_uniqueness_                      = 0;
+    std::string stereo_output_mode_             ="";
+    //Parameters for SmartRunner(Explorer)
+    int smartrunner_autotrigger_enable_         = 0;
+    int smartrunner_exposure_time_              = 0;
+    int smartrunner_use_manual_exposure_time_   = 0;
+    int smartrunner_flash_time_                 = 0;
+    int smartrunner_object_contrast_            = 0;	
+    int smartrunner_roi_min_x_                  = 0;	
+    int smartrunner_roi_max_x_                  = 0;	
+    int smartrunner_roi_min_z_                  = 0;	
+    int smartrunner_roi_max_z_                  = 0;	
+    int smartrunner_image_transfer_active_      = 0;
+   
 };
 }
 

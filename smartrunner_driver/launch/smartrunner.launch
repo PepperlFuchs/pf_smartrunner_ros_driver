@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="frame_id" 				default="scan"/>
-  <arg name="device_ip" 			default="192.168.2.3"/>			<!-- Valid values: 	Smartrunner3D 	192.168.2.4 (default), 
+  <arg name="device_ip" 			default="192.168.2.4"/>			<!-- Valid values: 	Smartrunner3D 	192.168.2.4 (default), 
 														Smartrunner 	192.168.2.3 (default) -->
   
   <!-- Parameters for SmartRunner3D TOF -->
@@ -35,7 +35,8 @@
  
  
   <!-- Parameters for ROS-Dataformat -->
-  <arg name="message_type" default="PointCloud2"/>					<!-- Valid values: PointCloud or PointCloud2 	-->
+  <arg name="message_type" 				default="PointCloud"/>		<!-- Valid values: PointCloud or PointCloud2 	-->
+  <arg name="data_repetition_rate" 			default="0.1"/>			<!-- Valid values: 0.033 - 1 (30Hz - 1Hz)	-->
 
  
   <!-- ros node -->
@@ -43,6 +44,7 @@
     <param name="frame_id" 				value="$(arg frame_id)"/>
     <param name="device_ip" 				value="$(arg device_ip)"/>
     <param name="message_type" 				value="$(arg message_type)"/> 
+    <param name="data_repetition_rate" 			value="$(arg data_repetition_rate)"/> 
     <param name="tof_trigger_source" 			value="$(arg tof_trigger_source)"/> 
     <param name="tof_auto_trigger_rate" 		value="$(arg tof_auto_trigger_rate)"/> 
     <param name="tof_trigger_enable" 			value="$(arg tof_trigger_enable)"/> 

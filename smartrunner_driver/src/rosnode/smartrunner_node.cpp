@@ -9,71 +9,11 @@
 #include <ctime>
 #include <string>
 #include <iostream>
+#include <algorithm>
 #include <fstream>
 
 namespace pepperl_fuchs {
-
-   //Common Parameters
-    std::string frame_id_               ="";
-    std::string device_ip_              ="";
-    std::string message_type_           ="";
-    const char* IP                      = NULL;
-    bool retValue                       = false;
-    std::string sensor                  = ""; 
-    const char* sensor_type             = NULL;
-    time_t now;
-    //Parameters for Sensor Data
-    int linePitch                       = 0;
-    long frameCounter                   = 0;
-    double coordinateScale              = 0.0;
-    double coordinateOffset             = 0.0;
-    double axisMin                      = 0.0;
-    double axisMax                      = 0.0;
-    double invalidDataValue             = 0.0;
-    int rowIndex                        = 0;
-    int colIndex                        = 0;
-    int index                           = 0;
-    int width                           = 0;
-    int height                          = 0;
-   //Parameters for Vsx-Interface
-    VsxStatusCode status;
-    VsxSystemHandle* ptr_vsx            = NULL;
-    VsxDataContainerHandle* dch         = NULL;
-    VsxDevice* deviceData               = NULL;
-    VsxParameterList* deviceParameters  = NULL;
-    VsxImage* imageA                    = NULL;
-    VsxImage* imageB                    = NULL;
-    VsxImage* imageC                    = NULL;
-    VsxLineData* lineData	            = NULL;
-    VsxLineCoordinate* lineCoordinates  = NULL; 
-    VsxImageData2Format format;
-    //Parameters for SmartRunner(3D TOF)
-    std::string tof_trigger_source_             ="";
-    int tof_auto_trigger_rate_                  = 0;
-    int tof_trigger_enable_                     = 0;
-    int tof_exposure_time_                      = 0;
-    int tof_range_mode_                         = 0;
-    std::string tof_output_mode_                ="";
-    //Parameters for SmartRunner(3D Stereo)
-    std::string stereo_trigger_source_          ="";
-    int stereo_auto_trigger_rate_               = 0;
-    int stereo_trigger_enable_                  = 0;
-    int stereo_exposure_time_                   = 0;
-    int stereo_gain_                            = 0;
-    int stereo_uniqueness_                      = 0;
-    std::string stereo_output_mode_             ="";
-    //Parameters for SmartRunner(Explorer)
-    int smartrunner_autotrigger_enable_         = 0;
-    int smartrunner_exposure_time_              = 0;
-    int smartrunner_use_manual_exposure_time_   = 0;
-    int smartrunner_flash_time_                 = 0;
-    int smartrunner_object_contrast_            = 0;	
-    int smartrunner_roi_min_x_                  = 0;	
-    int smartrunner_roi_max_x_                  = 0;	
-    int smartrunner_roi_min_z_                  = 0;	
-    int smartrunner_roi_max_z_                  = 0;	
-    int smartrunner_image_transfer_active_      = 0;
-    
+ 
 //-----------------------------------------------------------------------------
 smartrunner_node::smartrunner_node():nh_("~")
 {
@@ -81,6 +21,7 @@ smartrunner_node::smartrunner_node():nh_("~")
     nh_.param("frame_id", frame_id_, std::string(""));
     nh_.param("device_ip",device_ip_,std::string(""));
     nh_.param("message_type",message_type_,std::string(""));
+    nh_.getParam("data_repetition_rate",data_repetition_rate_);
 
     nh_.getParam("tof_trigger_source", tof_trigger_source_); 
     nh_.getParam("tof_output_mode", tof_output_mode_);
@@ -111,6 +52,7 @@ smartrunner_node::smartrunner_node():nh_("~")
     printf("ip: %s\n", device_ip_.c_str());
     printf("message type: %s\n", message_type_.c_str());
     printf("id: %s\n", frame_id_.c_str());
+    printf("data_repetition_rate: %f\n", data_repetition_rate_);
     
     printf("tof_trigger_source: %s\n", tof_trigger_source_.c_str());
     printf("tof_auto_trigger_rate: %d\n", tof_auto_trigger_rate_);
@@ -144,9 +86,9 @@ smartrunner_node::smartrunner_node():nh_("~")
         return;
     }
     else
-    {
-        IP = device_ip_.c_str();
-        
+    {       
+        IP = device_ip_.data();
+      
         retValue = connect();
         
         if(retValue == true)
@@ -156,14 +98,14 @@ smartrunner_node::smartrunner_node():nh_("~")
                 // Declare publisher and create timer
                 scan_publisher_         = nh_.advertise<sensor_msgs::PointCloud>("scan",100);
                 cmd_subscriber_         = nh_.subscribe("control_command",100,&smartrunner_node::cmdMsgCallback,this);
-                get_scan_data_timer_    = nh_.createTimer(ros::Duration(0.1), &smartrunner_node::getScanDataPointCloud, this);
+                get_scan_data_timer_    = nh_.createTimer(ros::Duration(data_repetition_rate_), &smartrunner_node::getScanDataPointCloud, this);
             }
             if(message_type_ == "PointCloud2")
             { 
                 // Declare publisher and create timer
                 scan_publisher_         = nh_.advertise<sensor_msgs::PointCloud2>("scan",100);
                 cmd_subscriber_         = nh_.subscribe("control_command",100,&smartrunner_node::cmdMsgCallback,this);
-                get_scan_data_timer_    = nh_.createTimer(ros::Duration(0.1), &smartrunner_node::getScanDataPointCloud2, this);
+                get_scan_data_timer_    = nh_.createTimer(ros::Duration(data_repetition_rate_), &smartrunner_node::getScanDataPointCloud2, this);
             }           
         }
     }
@@ -325,7 +267,16 @@ void smartrunner_node::getScanDataPointCloud2(const ros::TimerEvent &e)
 {    
     sensor_msgs::PointCloud2 scanmsg2;  
     sensor_msgs::PointCloud scanmsg; 
-  
+   
+    int linePitch                       = 0;
+    int rowIndex                        = 0;
+    int colIndex                        = 0;
+    int index                           = 0;
+    int width                           = 0;
+    int height                          = 0;
+   
+
+
     if(sensor == "SMARTRUNNER")
     {   
         status = vsx_GetDataContainer(ptr_vsx, &dch, 10000);
@@ -374,12 +325,7 @@ void smartrunner_node::getScanDataPointCloud2(const ros::TimerEvent &e)
                     height              = imageA->height;
                     format              = imageA->format;
                     linePitch           = imageA->linePitch;
-                    frameCounter        = imageA->frameCounter;
-                    coordinateScale     = imageA->coordinateScale;
-                    coordinateOffset    = imageA->coordinateOffset;
-                    axisMin             = imageA->axisMin;
-                    axisMax             = imageA->axisMax;
-                    invalidDataValue    = imageA->invalidDataValue;
+                    
 
                     float xPixelf   = 0;        float yPixelf   = 0;        float zPixelf   = 0;
                     float* xf       = NULL;     float* yf       = NULL;     float* zf       = NULL;
@@ -476,7 +422,13 @@ void smartrunner_node::getScanDataPointCloud2(const ros::TimerEvent &e)
 void smartrunner_node::getScanDataPointCloud(const ros::TimerEvent &e)
 {  
     sensor_msgs::PointCloud scanmsg; 
-    
+    int linePitch                       = 0;
+    int rowIndex                        = 0;
+    int colIndex                        = 0;
+    int index                           = 0;
+    int width                           = 0;
+    int height                          = 0;
+ 
     if(sensor == "SMARTRUNNER")
     {
         status = vsx_GetDataContainer(ptr_vsx, &dch, 10000);
@@ -524,12 +476,7 @@ void smartrunner_node::getScanDataPointCloud(const ros::TimerEvent &e)
                     height              = imageA->height;
                     format              = imageA->format;
                     linePitch           = imageA->linePitch;
-                    frameCounter        = imageA->frameCounter;
-                    coordinateScale     = imageA->coordinateScale;
-                    coordinateOffset    = imageA->coordinateOffset;
-                    axisMin             = imageA->axisMin;
-                    axisMax             = imageA->axisMax;
-                    invalidDataValue    = imageA->invalidDataValue;
+                   
 
                     float xPixelf   = 0;        float yPixelf   = 0;        float zPixelf   = 0;
                     float* xf       = NULL;     float* yf       = NULL;     float* zf       = NULL;
