@@ -53,7 +53,6 @@ private:
     std::string message_type_           	="";
     float data_repetition_rate_           	=0.0;
     std::string sensor                  	=""; 
-    const char* IP 				= NULL;
     const char* sensor_type             	= NULL;
     bool retValue                       	= false;
     //Parameters for Vsx-Interface

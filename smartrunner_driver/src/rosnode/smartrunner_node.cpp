@@ -86,9 +86,7 @@ smartrunner_node::smartrunner_node():nh_("~")
         return;
     }
     else
-    {       
-        IP = device_ip_.data();
-      
+    {
         retValue = connect();
         
         if(retValue == true)
@@ -137,7 +135,7 @@ bool smartrunner_node::connect()
     }
   
     printf("#######################################################\n");
-    status = vsx_InitTcpSensor(&ptr_vsx, IP, PlugIn);
+    status = vsx_InitTcpSensor(&ptr_vsx, device_ip_.c_str(), PlugIn);
     printf("InitTcpSensor Status: %d\n", status);
     if (status == VSX_STATUS_SUCCESS)
     {      
