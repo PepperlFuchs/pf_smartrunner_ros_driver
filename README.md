@@ -26,8 +26,8 @@ The ROS package `smartrunner_driver` consists of the driver library and a node n
 #### Published topics
 The following standard ROS messages are supported. The messages contain the measured data.
 
-- `scan` (`sensor_msgs/PointCloud`) 
-- `scan` (`sensor_msgs/PointCloud2`) 
+- `scan` (`sensor_msgs/PointCloud`)
+- `scan` (`sensor_msgs/PointCloud2`)
 
 #### Parameters
 
@@ -36,13 +36,14 @@ The following standard ROS messages are supported. The messages contain the meas
 - `message_type` - The type of the PointCloud-Message (PointCloud or PointCloud2)
 
 #### Installation guide
-1. Clone the repository in the src folder of your ROS workspace.  
-```git clone --branch=master https://github.com/PepperlFuchs/pf_smartrunner_ros_driver.git```
-2. Download the library from the Pepperl+Fuchs site.  
+1. Create a ROS workspace (http://wiki.ros.org/catkin/Tutorials/create_a_workspace) (e.g. in `<home>/catkin_ws`)
+2. Clone the repository in the src folder of your ROS workspace.
+```git clone https://github.com/PepperlFuchs/pf_smartrunner_ros_driver.git```
+3. Download the library from the Pepperl+Fuchs site.
    (https://www.pepperl-fuchs.com/global/en/classid_9866.htm?view=productdetails&prodid=117291#software)
-3. Unzip the downloaded file and copy the folder "VsxSdk" in to the folder:  
-```<home>/catkin_ws/src/pf_smartrunner_ros_driver/smartrunner_driver/lib/```
-4. Install .NET SDK.  
+4. Unzip the downloaded file and copy the folder "VsxSdk" in to the folder:  
+```<home>/catkin_ws/src/pf_smartrunner_ros_driver/smartrunner_driver/lib/```<br/>NOTE: For VsxSdk-version 3.0.6: Change directory to <br/>```<home>/catkin_ws/src/pf_smartrunner_ros_driver/smartrunner_driver/lib/VsxSdk/C/lib/linux-x64/``` and call <br/>```ln -s PF.VsxProtocolDriver.WrapperNE.so libPF.VsxProtocolDriver.WrapperNE.so```.
+4. Install .NET SDK.
    (https://learn.microsoft.com/en-us/dotnet/core/install/linux-ubuntu-2004)
 5. Change to the workspace directory.  
 ```<home>/catkin_ws/```
@@ -57,6 +58,6 @@ The following standard ROS messages are supported. The messages contain the meas
 2. Run the command:  
 ```roslaunch pepperl_fuchs_smartrunner smartrunner.launch```  
 3. This starts `RViz` (http://wiki.ros.org/rviz) and the driver.
-4. The measure points coming from the sensor are shown in the window.
+4. The measure points coming from the sensor are shown in the `RViz` window.
 
 
