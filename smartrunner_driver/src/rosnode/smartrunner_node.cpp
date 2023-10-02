@@ -1,27 +1,17 @@
 #include "smartrunner_node.h"
-#include <sensor_msgs/PointCloud.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/PointField.h>
 #include <sensor_msgs/point_cloud_conversion.h>
-#include <sensor_msgs/LaserScan.h>
-
-#include <cstdlib>
-#include <ctime>
 #include <string>
-#include <iostream>
-#include <algorithm>
-#include <fstream>
 
 namespace pepperl_fuchs {
  
 //-----------------------------------------------------------------------------
 smartrunner_node::smartrunner_node():nh_("~")
 {
+    running_ = false;
     // Reading and checking parameters from launch-file
     nh_.param("frame_id", frame_id_, std::string(""));
     nh_.param("device_ip",device_ip_,std::string(""));
     nh_.param("message_type",message_type_,std::string(""));
-    nh_.getParam("data_repetition_rate",data_repetition_rate_);
 
     nh_.getParam("tof_trigger_source", tof_trigger_source_); 
     nh_.getParam("tof_output_mode", tof_output_mode_);
@@ -52,7 +42,6 @@ smartrunner_node::smartrunner_node():nh_("~")
     printf("ip: %s\n", device_ip_.c_str());
     printf("message type: %s\n", message_type_.c_str());
     printf("id: %s\n", frame_id_.c_str());
-    printf("data_repetition_rate: %f\n", data_repetition_rate_);
     
     printf("tof_trigger_source: %s\n", tof_trigger_source_.c_str());
     printf("tof_auto_trigger_rate: %d\n", tof_auto_trigger_rate_);
@@ -80,39 +69,53 @@ smartrunner_node::smartrunner_node():nh_("~")
     printf("smartrunner_roi_max_z_: %d\n", smartrunner_roi_max_z_);
     printf("smartrunner_image_transfer_active_: %d\n", smartrunner_image_transfer_active_);
  
+}
+
+bool smartrunner_node::init()
+{
     if( device_ip_ == "" )
     {
         printf("IP of scanner not set!\n");
-        return;
+        return false;
     }
     else
-    {
-        retValue = connect();
-        
-        if(retValue == true)
+    {      
+        if(connect())
         {         
             if(message_type_ == "PointCloud")
             {
-                // Declare publisher and create timer
-                scan_publisher_         = nh_.advertise<sensor_msgs::PointCloud>("scan",100);
-                cmd_subscriber_         = nh_.subscribe("control_command",100,&smartrunner_node::cmdMsgCallback,this);
-                get_scan_data_timer_    = nh_.createTimer(ros::Duration(data_repetition_rate_), &smartrunner_node::getScanDataPointCloud, this);
+                // Declare publisher
+                scan_publisher_ = nh_.advertise<sensor_msgs::PointCloud>("scan", 5);
             }
             if(message_type_ == "PointCloud2")
             { 
-                // Declare publisher and create timer
-                scan_publisher_         = nh_.advertise<sensor_msgs::PointCloud2>("scan",100);
-                cmd_subscriber_         = nh_.subscribe("control_command",100,&smartrunner_node::cmdMsgCallback,this);
-                get_scan_data_timer_    = nh_.createTimer(ros::Duration(data_repetition_rate_), &smartrunner_node::getScanDataPointCloud2, this);
-            }           
+                // Declare publisher
+                scan_publisher_ = nh_.advertise<sensor_msgs::PointCloud2>("scan", 5);
+            }
+
+            cmd_subscriber_ = nh_.subscribe("control_command",100,&smartrunner_node::cmdMsgCallback,this);
+
+            // set up grabbing loop
+            running_ = true;
+            grab_thread_ = std::move(std::thread(&pepperl_fuchs::smartrunner_node::grab_loop, this));
+            return true;
         }
     }
+    return false;
 }
 
 smartrunner_node::~smartrunner_node()
 {
     printf("#######################################################\n");
-    status =  vsx_Disconnect(ptr_vsx);
+    printf("Destructing smartrunner_node\n");
+    // Stop grab thread if it was started
+    if (running_)
+    {
+        running_ = false;
+        grab_thread_.join();
+    }
+
+    auto status =  vsx_Disconnect(ptr_vsx);
     printf("Disconnect Status: %d\n", status);
     if (status == VSX_STATUS_SUCCESS)
     {      
@@ -127,7 +130,7 @@ bool smartrunner_node::connect()
     const char* PlugIn = "";
    
     printf("#######################################################\n");
-    status = vsx_GetLibraryVersion(&version);
+    VsxStatusCode status = vsx_GetLibraryVersion(&version);
     if (status == VSX_STATUS_SUCCESS)
     {      
         printf("Version %s\n", version);
@@ -151,6 +154,7 @@ bool smartrunner_node::connect()
     }
 
     printf("#######################################################\n");
+    VsxDevice* deviceData = nullptr;
     status =  vsx_GetDeviceInformation(ptr_vsx,&deviceData);
     printf("GetCurrentDeviceInformation Status: %d\n", status);
 
@@ -249,323 +253,160 @@ bool smartrunner_node::connect()
             
         }       
         status = vsx_ReleaseDevice(&deviceData);
+    } else {
+        return false;
     }
 
+
     printf("#######################################################\n");
-    status = vsx_ResetDynamicContainerGrabber(ptr_vsx, 1, VSX_STRATEGY_DROP_OLDEST);
+    status = vsx_ResetDynamicContainerGrabber(ptr_vsx, 2, VSX_STRATEGY_DROP_OLDEST);
     if (status == VSX_STATUS_SUCCESS)
     {
         printf("receiving data...\n");       
-    }    
+    }         
     return true;
 }
 
-//-----------------------------------------------------------------------------
-void smartrunner_node::getScanDataPointCloud2(const ros::TimerEvent &e)
-{    
-    sensor_msgs::PointCloud2 scanmsg2;  
-    sensor_msgs::PointCloud scanmsg; 
-   
-    int linePitch                       = 0;
-    int rowIndex                        = 0;
-    int colIndex                        = 0;
-    int index                           = 0;
-    int width                           = 0;
-    int height                          = 0;
-   
-
-
-    if(sensor == "SMARTRUNNER")
-    {   
-        status = vsx_GetDataContainer(ptr_vsx, &dch, 10000);
-        if(status==VSX_STATUS_SUCCESS)
-        {
-            status = vsx_GetLine(dch, "Line", &lineData);
-            if(status==VSX_STATUS_SUCCESS)
-            {           
-                scanmsg.header.frame_id = frame_id_;
-                scanmsg.header.stamp = ros::Time::now();
-                scanmsg.points.resize(lineData->width);
-
-                for( std::size_t i=0; i<lineData->width; i++ )
-                {
-                    scanmsg.points[i].x = lineData->lines[0][i].x / 1000.0;
-                    scanmsg.points[i].y = 0;
-                    scanmsg.points[i].z = lineData->lines[0][i].z / 1000.0; 
-                }
-
-                status = vsx_ReleaseLine(&lineData);
-                status = vsx_ReleaseDataContainer(&dch);
-             
-                sensor_msgs::convertPointCloudToPointCloud2(scanmsg,scanmsg2);  
-                scan_publisher_.publish(scanmsg2);
-            }
-        }
-    }
-
-  if(sensor == "SR3D_STEREO" || sensor == "SR3D_TOF" )
-  {
-    scanmsg.header.frame_id     = frame_id_;
-    scanmsg.header.stamp        = ros::Time::now(); 
-    status = vsx_GetDataContainer(ptr_vsx, &dch, 10000);
-    if (status == VSX_STATUS_SUCCESS)
+void smartrunner_node::grab_loop()
+{
+    while (running_) 
     {
-        status = vsx_GetImage(dch, "CalibratedA", &imageA);
+        VsxDataContainerHandle* dch = NULL;
+        VsxStatusCode status = vsx_GetDataContainer(ptr_vsx, &dch, 500);
         if (status == VSX_STATUS_SUCCESS)
         {
-            status = vsx_GetImage(dch, "CalibratedB", &imageB);
-            if (status == VSX_STATUS_SUCCESS)
+            if (message_type_ == "PointCloud")
             {
-                status = vsx_GetImage(dch, "CalibratedC", &imageC);
-                if (status == VSX_STATUS_SUCCESS)
-                {
-                    width               = imageA->width;
-                    height              = imageA->height;
-                    format              = imageA->format;
-                    linePitch           = imageA->linePitch;
-                    
+                auto scanmsg = getScanDataPointCloud(dch);
+                scan_publisher_.publish(scanmsg);
 
-                    float xPixelf   = 0;        float yPixelf   = 0;        float zPixelf   = 0;
-                    float* xf       = NULL;     float* yf       = NULL;     float* zf       = NULL;
-                    int16_t* x      = NULL;     int16_t* y      = NULL;     int16_t* z      = NULL;
-                    int16_t xPixel  = 0;        int16_t yPixel  = 0;        int16_t zPixel  = 0;
-                    float x_tmp     = 0.0;      float y_tmp     = 0.0;      float z_tmp     = 0.0;
-                    
-                    int point_id = 0;
-                    int max_size = 0;
-                    int rowIndex = 0, colIndex = 0;
-
-                    max_size = imageA->height*imageA->width;
-                    scanmsg.points.resize(max_size);
-                   
-                    if( sensor == "SR3D_TOF")
-                    {                        
-                        for(int rowCentered = 0;rowCentered < (imageA->height);rowCentered++)
-                        {
-                            rowIndex = 0;
-                            colIndex = rowCentered * imageA->linePitch;                               
-                            for(int colCentered = 0;colCentered < (imageA->width);colCentered++)
-                            {
-                                index = colIndex + rowIndex;         
-                                z = reinterpret_cast<int16_t*>(reinterpret_cast<int8_t*>(imageC->rawdata) + index);
-                                zPixel = *z;
-                                x = reinterpret_cast<int16_t*>(reinterpret_cast<int8_t*>(imageA->rawdata) + index);
-                                xPixel = *x;
-                                y = reinterpret_cast<int16_t*>(reinterpret_cast<int8_t*>(imageB->rawdata) + index);
-                                yPixel = *y;
-                                
-                                if(zPixel > 0 && point_id < max_size)
-                                {
-                                    x_tmp = float(xPixel)/1000.0;
-                                    y_tmp = float(yPixel)/1000.0;
-                                    z_tmp = float(zPixel)/1000.0;
-        
-                                    scanmsg.points[point_id].x = x_tmp;
-                                    scanmsg.points[point_id].y = y_tmp;
-                                    scanmsg.points[point_id].z = z_tmp; 
-                            
-                                    point_id++;                      
-                                }
-                            rowIndex +=2;
-                            }      
-                        }
-                    }
-
-                    if( sensor == "SR3D_STEREO")
-                    {                          
-                        for(int rowCentered = 0;rowCentered < (imageA->height);rowCentered++)
-                        {
-                            rowIndex = 0;
-                            colIndex = rowCentered * imageA->linePitch;
-                            for(int colCentered = 0;colCentered < (imageA->width);colCentered++)
-                            {
-                                index = colIndex + rowIndex;
-       
-                                zf = reinterpret_cast<float*>(reinterpret_cast<int8_t*>(imageC->rawdata) + index);
-                                zPixelf = *zf;
-                                xf = reinterpret_cast<float*>(reinterpret_cast<int8_t*>(imageA->rawdata) + index);
-                                xPixelf = *xf;
-                                yf = reinterpret_cast<float*>(reinterpret_cast<int8_t*>(imageB->rawdata) + index);
-                                yPixelf = *yf;
-                                
-                                x_tmp = (xPixelf)/1000.0;
-                                y_tmp = (yPixelf)/1000.0;
-                                z_tmp = (zPixelf)/1000.0;
-
-                                if(z_tmp > 0.1 && point_id < max_size)
-                                {                                 
-                                    scanmsg.points[point_id].x = x_tmp;
-                                    scanmsg.points[point_id].y = y_tmp;
-                                    scanmsg.points[point_id].z = z_tmp; 
-                            
-                                    point_id++;        
-                                }                           
-                                rowIndex +=4;
-                            }      
-                        }
-                    }
-                    status = vsx_ReleaseImage(&imageA);
-                    status = vsx_ReleaseImage(&imageB);
-                    status = vsx_ReleaseImage(&imageC);     
-                }
             }
+            if (message_type_ == "PointCloud2")
+            {
+                auto scanmsg2 = getScanDataPointCloud2(dch);
+                scan_publisher_.publish(scanmsg2);                
+            }
+            vsx_ReleaseDataContainer(&dch);
+            continue;
         }
-        status = vsx_ReleaseDataContainer(&dch);
-    } 
-    sensor_msgs::convertPointCloudToPointCloud2(scanmsg,scanmsg2);  
-    scan_publisher_.publish(scanmsg2);
-  }
+        if (status != VSX_STATUS_ERROR_DRIVER_TIMEOUT)
+        {
+            printf("Exiting grab loop due to error!\n");
+            break;
+        }
+    }
 }
 
-void smartrunner_node::getScanDataPointCloud(const ros::TimerEvent &e)
+sensor_msgs::PointCloud smartrunner_node::getScanDataPointCloud(VsxDataContainerHandle* dch)
 {  
     sensor_msgs::PointCloud scanmsg; 
-    int linePitch                       = 0;
-    int rowIndex                        = 0;
-    int colIndex                        = 0;
-    int index                           = 0;
-    int width                           = 0;
-    int height                          = 0;
+    scanmsg.header.frame_id     = frame_id_;
+    scanmsg.header.stamp        = ros::Time::now();
  
     if(sensor == "SMARTRUNNER")
     {
-        status = vsx_GetDataContainer(ptr_vsx, &dch, 10000);
+        VsxLineData* lineData = nullptr;
+        auto status = vsx_GetLine(dch, "Line", &lineData);
         if(status==VSX_STATUS_SUCCESS)
-        {
-            status = vsx_GetLine(dch, "Line", &lineData);
-            if(status==VSX_STATUS_SUCCESS)
-            {          
-                scanmsg.header.frame_id = frame_id_;
-                scanmsg.header.stamp = ros::Time::now();
-                scanmsg.points.resize(lineData->width);
-    
-                for( std::size_t i=0; i<lineData->width; i++ )
-                {
-                    scanmsg.points[i].x = lineData->lines[0][i].x / 1000.0;
-                    scanmsg.points[i].y = 0;
-                    scanmsg.points[i].z = lineData->lines[0][i].z / 1000.0; 
-                }
+        {          
+            scanmsg.points.resize(lineData->width);
 
-                status = vsx_ReleaseLine(&lineData);
-                status = vsx_ReleaseDataContainer(&dch);
-             
-                scan_publisher_.publish(scanmsg);
+            for( std::size_t i=0; i<lineData->width; i++ )
+            {
+                scanmsg.points[i].x = lineData->lines[0][i].x / 1000.0;
+                scanmsg.points[i].y = 0;
+                scanmsg.points[i].z = lineData->lines[0][i].z / 1000.0; 
             }
+            status = vsx_ReleaseLine(&lineData);
         }
     }
 
-  if(sensor == "SR3D_STEREO" || sensor == "SR3D_TOF" )
-  {
-    scanmsg.header.frame_id     = frame_id_;
-    scanmsg.header.stamp        = ros::Time::now(); 
-    status = vsx_GetDataContainer(ptr_vsx, &dch, 10000);
-    if (status == VSX_STATUS_SUCCESS)
+    if(sensor == "SR3D_STEREO" || sensor == "SR3D_TOF" )
     {
-        status = vsx_GetImage(dch, "CalibratedA", &imageA);
-        if (status == VSX_STATUS_SUCCESS)
+        VsxImage* imageA = nullptr;
+        VsxImage* imageB = nullptr;
+        VsxImage* imageC = nullptr;
+
+        auto status_A = vsx_GetImage(dch, "CalibratedA", &imageA);
+        auto status_B = vsx_GetImage(dch, "CalibratedB", &imageB);
+        auto status_C = vsx_GetImage(dch, "CalibratedC", &imageC);
+
+
+        if (status_A == VSX_STATUS_SUCCESS && status_B == VSX_STATUS_SUCCESS && status_C == VSX_STATUS_SUCCESS)
         {
-            status = vsx_GetImage(dch, "CalibratedB", &imageB);
-            if (status == VSX_STATUS_SUCCESS)
-            {
-                status = vsx_GetImage(dch, "CalibratedC", &imageC);
-                if (status == VSX_STATUS_SUCCESS)
+            int width               = imageA->width;
+            int height              = imageA->height;
+            auto format             = imageA->format;
+            int linePitch           = imageA->linePitch;
+
+            int point_id = 0;
+            scanmsg.points.resize(width * height);
+
+            if( format == VSX_IMAGE_DATA2_FORMAT_COORD3D_A16 ) // TOF
+            {                        
+                for(int row = 0;row < height;row++)
                 {
-                    width               = imageA->width;
-                    height              = imageA->height;
-                    format              = imageA->format;
-                    linePitch           = imageA->linePitch;
-                   
-
-                    float xPixelf   = 0;        float yPixelf   = 0;        float zPixelf   = 0;
-                    float* xf       = NULL;     float* yf       = NULL;     float* zf       = NULL;
-                    int16_t* x      = NULL;     int16_t* y      = NULL;     int16_t* z      = NULL;
-                    int16_t xPixel  = 0;        int16_t yPixel  = 0;        int16_t zPixel  = 0;
-                    float x_tmp     = 0.0;      float y_tmp     = 0.0;      float z_tmp     = 0.0;
-                    
-                    int point_id = 0;
-                    int max_size = 0;
-                    int rowIndex = 0, colIndex = 0;
-
-                    max_size = imageA->height*imageA->width;
-                    scanmsg.points.resize(max_size);
-                   
-                    if( sensor == "SR3D_TOF")
-                    {                        
-                        for(int rowCentered = 0;rowCentered < (imageA->height);rowCentered++)
+                    int index = row * linePitch;
+                    for(int col = 0;col < width;col++)
+                    {
+                        int16_t z = *reinterpret_cast<int16_t*>(reinterpret_cast<int8_t*>(imageC->rawdata) + index);
+                        
+                        if(z > 0)
                         {
-                            rowIndex = 0;
-                            colIndex = rowCentered * imageA->linePitch;                               
-                            for(int colCentered = 0;colCentered < (imageA->width);colCentered++)
-                            {
-                                index = colIndex + rowIndex;         
-                                z = reinterpret_cast<int16_t*>(reinterpret_cast<int8_t*>(imageC->rawdata) + index);
-                                zPixel = *z;
-                                x = reinterpret_cast<int16_t*>(reinterpret_cast<int8_t*>(imageA->rawdata) + index);
-                                xPixel = *x;
-                                y = reinterpret_cast<int16_t*>(reinterpret_cast<int8_t*>(imageB->rawdata) + index);
-                                yPixel = *y;
-                                
-                                if(zPixel > 0 && point_id < max_size)
-                                {
-                                    x_tmp = float(xPixel)/1000.0;
-                                    y_tmp = float(yPixel)/1000.0;
-                                    z_tmp = float(zPixel)/1000.0;
-        
-                                    scanmsg.points[point_id].x = x_tmp;
-                                    scanmsg.points[point_id].y = y_tmp;
-                                    scanmsg.points[point_id].z = z_tmp; 
-                            
-                                    point_id++;                      
-                                }
+                            int16_t x = *reinterpret_cast<int16_t*>(reinterpret_cast<int8_t*>(imageA->rawdata) + index);
+                            int16_t y = *reinterpret_cast<int16_t*>(reinterpret_cast<int8_t*>(imageB->rawdata) + index);
 
-                            rowIndex +=2;
-                            }      
+                            scanmsg.points[point_id].x = float(x)/1000.0;
+                            scanmsg.points[point_id].y = float(y)/1000.0;
+                            scanmsg.points[point_id].z = float(z)/1000.0; 
+                            point_id++;                      
                         }
-                    }
+                        index += sizeof(uint16_t);
+                    }      
+                }
+            }
 
-                    if( sensor == "SR3D_STEREO")
-                    {                          
-                        for(int rowCentered = 0;rowCentered < (imageA->height);rowCentered++)
-                        {
-                            rowIndex = 0;
-                            colIndex = rowCentered * imageA->linePitch;
-                            for(int colCentered = 0;colCentered < (imageA->width);colCentered++)
-                            {
-                                index = colIndex + rowIndex;
-       
-                                zf = reinterpret_cast<float*>(reinterpret_cast<int8_t*>(imageC->rawdata) + index);
-                                zPixelf = *zf;
-                                xf = reinterpret_cast<float*>(reinterpret_cast<int8_t*>(imageA->rawdata) + index);
-                                xPixelf = *xf;
-                                yf = reinterpret_cast<float*>(reinterpret_cast<int8_t*>(imageB->rawdata) + index);
-                                yPixelf = *yf;
-                                
-                                x_tmp = (xPixelf)/1000.0;
-                                y_tmp = (yPixelf)/1000.0;
-                                z_tmp = (zPixelf)/1000.0;
+            if( format == VSX_IMAGE_DATA2_FORMAT_COORD3D_A32F) // Stereo
+            {                          
+                for(int row = 0;row < height;row++)
+                {
+                    int index = row * linePitch;
+                    for(int col = 0;col < width; col++)
+                    {
+                        float z = *reinterpret_cast<float*>(reinterpret_cast<int8_t*>(imageC->rawdata) + index);
+                        
+                        if(z > 100.0)
+                        {                                 
+                            float x = *reinterpret_cast<float*>(reinterpret_cast<int8_t*>(imageA->rawdata) + index);
+                            float y = *reinterpret_cast<float*>(reinterpret_cast<int8_t*>(imageB->rawdata) + index);
 
-                                if(z_tmp > 0.1 && point_id < max_size)
-                                {                                 
-                                    scanmsg.points[point_id].x = x_tmp;
-                                    scanmsg.points[point_id].y = y_tmp;
-                                    scanmsg.points[point_id].z = z_tmp; 
-                            
-                                    point_id++;        
-                                }                           
-                                rowIndex +=4;
-                            }      
-                        }
-                    }
-                    status = vsx_ReleaseImage(&imageA);
-                    status = vsx_ReleaseImage(&imageB);
-                    status = vsx_ReleaseImage(&imageC);     
+                            scanmsg.points[point_id].x = x/1000.0;
+                            scanmsg.points[point_id].y = y/1000.0;
+                            scanmsg.points[point_id].z = z/1000.0;                   
+                            point_id++;        
+                        }                           
+                        index += sizeof(float);
+                    }      
                 }
             }
         }
-        status = vsx_ReleaseDataContainer(&dch);
-    } 
-    scan_publisher_.publish(scanmsg);
-  }
+        if (imageA != nullptr)
+            vsx_ReleaseImage(&imageA);
+        if (imageB != nullptr)
+            vsx_ReleaseImage(&imageB);
+        if (imageC != nullptr)
+            vsx_ReleaseImage(&imageC);     
+    }
+    return scanmsg;
+}
+
+sensor_msgs::PointCloud2 smartrunner_node::getScanDataPointCloud2(VsxDataContainerHandle* dch)
+{
+    // TODO: create native PointCloud2 message
+    auto scanmsg = getScanDataPointCloud(dch);
+    sensor_msgs::PointCloud2 scanmsg2;
+    sensor_msgs::convertPointCloudToPointCloud2(scanmsg,scanmsg2);  
+    return scanmsg2;
 }
 
 void smartrunner_node::cmdMsgCallback(const std_msgs::StringConstPtr &msg)
@@ -577,13 +418,23 @@ void smartrunner_node::cmdMsgCallback(const std_msgs::StringConstPtr &msg)
 int main(int argc, char **argv)
 {
     printf("main -> calling ros::init()\n");
-    ros::init(argc, argv, "sr3d_node", ros::init_options::AnonymousName);
-    printf("main -> creating sr3d object\n");
-    pepperl_fuchs::smartrunner_node* ptr_sr3d = new pepperl_fuchs::smartrunner_node();
-    printf("main -> calling ros::spin()\n");
-    ros::spin();
-    printf("main -> destroying sr3d object\n");
-    delete ptr_sr3d;
-    printf("main -> leavingh main()\n");
+    ros::init(argc, argv, "smartrunner_node", ros::init_options::AnonymousName);
+
+    {
+        printf("main -> creating sr3d object\n");
+        pepperl_fuchs::smartrunner_node node{};
+
+        if (node.init())
+        {
+            printf("main -> calling ros::spin()\n");
+            ros::spin();
+        } else {
+            printf("main -> failed to connect to SmartRunner sensor\n");
+        }
+
+        printf("main -> destroying sr3d object\n");
+        // node is automatically destructed when leaving scope
+    }
+    printf("main -> leaving main()\n");
     return 0;
 }

@@ -36,15 +36,13 @@
  
   <!-- Parameters for ROS-Dataformat -->
   <arg name="message_type" 				default="PointCloud"/>		<!-- Valid values: PointCloud or PointCloud2 	-->
-  <arg name="data_repetition_rate" 			default="0.1"/>			<!-- Valid values: 0.033 - 1 (30Hz - 1Hz)	-->
-
+  
  
   <!-- ros node -->
   <node pkg="pepperl_fuchs_smartrunner" type="smartrunner_node" name="smartrunner_node" respawn="true" output="screen">
     <param name="frame_id" 				value="$(arg frame_id)"/>
     <param name="device_ip" 				value="$(arg device_ip)"/>
     <param name="message_type" 				value="$(arg message_type)"/> 
-    <param name="data_repetition_rate" 			value="$(arg data_repetition_rate)"/> 
     <param name="tof_trigger_source" 			value="$(arg tof_trigger_source)"/> 
     <param name="tof_auto_trigger_rate" 		value="$(arg tof_auto_trigger_rate)"/> 
     <param name="tof_trigger_enable" 			value="$(arg tof_trigger_enable)"/> 

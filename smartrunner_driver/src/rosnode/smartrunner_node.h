@@ -3,11 +3,17 @@
 
 #include <ros/ros.h>
 #include <std_msgs/String.h>
+#include <sensor_msgs/PointCloud.h>
+#include <sensor_msgs/PointCloud2.h>
+
 
 extern "C"{
     #include "PF.VsxProtocolDriver.WrapperNE.h"
     #include "dnne.h"
 }
+
+#include <thread>
+#include <atomic>
 
 
 namespace pepperl_fuchs {
@@ -25,21 +31,26 @@ public:
     //! Callback function for control commands
     void cmdMsgCallback( const std_msgs::StringConstPtr& msg );
 
+    //! Connect to device
+    bool init();
+
 private:
 
     //! Connect to the laser range finder
     //! @returns True on success, false otherwise
     bool connect();
 
-    //! Time callback function for getting data from the driver and sending them out
-    void getScanDataPointCloud( const ros::TimerEvent& e);
-    void getScanDataPointCloud2( const ros::TimerEvent& e);
+    //! Grab loop that will run in grab thread
+    void grab_loop();
 
+    //! Convert VsxDataContainter to PointCloud message
+    sensor_msgs::PointCloud getScanDataPointCloud(VsxDataContainerHandle* dch);
+
+    //! Convert VsxDataContainter to PointCloud2 message
+    sensor_msgs::PointCloud2 getScanDataPointCloud2(VsxDataContainerHandle* dch);
+    
     //! Internal ROS node handle
     ros::NodeHandle nh_;
-
-    //! Callback timer for getScanData(...)
-    ros::Timer get_scan_data_timer_;
 
     //! ROS publisher for publishing scan data
     ros::Publisher scan_publisher_;
@@ -51,22 +62,10 @@ private:
     std::string frame_id_               	="";
     std::string device_ip_              	="";
     std::string message_type_           	="";
-    float data_repetition_rate_           	=0.0;
     std::string sensor                  	=""; 
-    const char* sensor_type             	= NULL;
-    bool retValue                       	= false;
     //Parameters for Vsx-Interface
-    VsxStatusCode status;
     VsxSystemHandle* ptr_vsx            	= NULL;
-    VsxDataContainerHandle* dch         	= NULL;
-    VsxDevice* deviceData               	= NULL;
-    VsxParameterList* deviceParameters  	= NULL;
-    VsxImage* imageA                    	= NULL;
-    VsxImage* imageB                    	= NULL;
-    VsxImage* imageC                    	= NULL;
-    VsxLineData* lineData	            	= NULL;
-    VsxLineCoordinate* lineCoordinates  	= NULL; 
-    VsxImageData2Format format;
+
     //Parameters for SmartRunner(3-D TOF)
     std::string tof_trigger_source_             ="";
     int tof_auto_trigger_rate_                  = 0;
@@ -93,6 +92,10 @@ private:
     int smartrunner_roi_min_z_                  = 0;	
     int smartrunner_roi_max_z_                  = 0;	
     int smartrunner_image_transfer_active_      = 0;
+
+    // grab thread
+    std::thread grab_thread_;
+    std::atomic_bool running_;
    
 };
 }
