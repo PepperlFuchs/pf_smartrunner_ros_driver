@@ -1,19 +1,33 @@
 # Pepperl+Fuchs SmartRunner Explorer Driver
 
-This is the documentation of a driver for the Pepperl+Fuchs SmartRunner Explorer.
+This is the documentation of a driver for the Pepperl+Fuchs SmartRunner Explorer. This driver
 The driver has a ROS-Node interface to the Robot Operating System (<http://www.ros.org>).
 
 
 ## Sensor information
 
+The following Pepperl+Fuchs sensors are supported by this ROS driver.
+
+### SmartRunner 3-D Explorer
 The SmartRunner Explorer generates high-precision 3-D point cloud images in addition to 2-D images. 
 It is optionally available with stereo vision technology or time-of-flight (ToF) technology. 
 As a raw data sensor, the vision sensor is suitable for a wide variety of applications.
 
 Official Website: https://www.pepperl-fuchs.com/global/en/smartrunner_3-d.htm
 
-Datasheet (en): https://files.pepperl-fuchs.com/webcat/navi/productInfo/doct/tdoct7242a_eng.pdf?v=20220207113707
+Datasheet (en): https://files.pepperl-fuchs.com/webcat/navi/productInfo/doct/tdoct7242a_eng.pdf
 
+### SmartRunner Explorer
+
+The SmartRunner Explorer is based on the innovative SmartRunner technology and outputs both height profiles and area 
+images. SmartRunner technology combines the light-sectioning method for acquiring height profiles with the acquisition 
+of area images via the integrated area illumination. In the light section method, a laser line is projected onto an 
+object. This is captured at a specific angle by a camera. A height profile is then created using the triangulation 
+principle. This laser technology enables reliable height profile recording on different surfaces.
+
+Official Website: https://www.pepperl-fuchs.com/global/en/classid_9864.htm
+
+Datasheet (en): https://files.pepperl-fuchs.com/webcat/navi/productInfo/pds/284586-100009_eng.pdf
 
 ## Usage with ROS
 The ROS package `smartrunner_driver` consists of the driver library and a node named `smartrunner_node`.
