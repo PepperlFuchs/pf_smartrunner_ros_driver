@@ -42,7 +42,7 @@ Visualization Manager:
       Offset:
         X: 0
         Y: 0
-        Z: 0
+        Z: 5
       Plane: XY
       Plane Cell Count: 50
       Reference Frame: <Fixed Frame>
@@ -72,7 +72,7 @@ Visualization Manager:
       Size (Pixels): 1
       Size (m): 0.00999999978
       Style: Points
-      Topic: /sr3d_node_2/scan
+      Topic: /smartrunner_node/scan
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -113,10 +113,10 @@ Visualization Manager:
         Z: 0
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.785398185
+      Pitch: 3.14
       Target Frame: <Fixed Frame>
       Value: XYOrbit (rviz)
-      Yaw: 0.785398185
+      Yaw: 3.14
     Saved: ~
 Window Geometry:
   Displays:

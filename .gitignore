@@ -1,2 +1,5 @@
-/sr3d_driver/lib/VsxSdk
+# Ignore VsxSdk
+/smartrunner_driver/lib/VsxSdk
 
+# ignore Clion files
+.idea
