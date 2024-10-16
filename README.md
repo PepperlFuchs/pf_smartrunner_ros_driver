@@ -56,7 +56,7 @@ The following standard ROS messages are supported. The messages contain the meas
 3. Download the library from the Pepperl+Fuchs site.
    (https://www.pepperl-fuchs.com/global/en/classid_9866.htm?view=productdetails&prodid=117291#software)
 4. Unzip the downloaded file and copy the folder "VsxSdk" in to the folder:  
-```<home>/catkin_ws/src/pf_smartrunner_ros_driver/smartrunner_driver/lib/```<br/>NOTE: For VsxSdk-version 3.0.6: Change directory to <br/>```<home>/catkin_ws/src/pf_smartrunner_ros_driver/smartrunner_driver/lib/VsxSdk/C/lib/linux-x64/``` and call <br/>```ln -s PF.VsxProtocolDriver.WrapperNE.so libPF.VsxProtocolDriver.WrapperNE.so```.
+```<home>/catkin_ws/src/pf_smartrunner_ros_driver/smartrunner_driver/lib/```<br/>Change directory to <br/>```<home>/catkin_ws/src/pf_smartrunner_ros_driver/smartrunner_driver/lib/VsxSdk/C/lib/linux-x64/``` and call <br/>```ln -s PF.VsxProtocolDriver.WrapperNE.so libPF.VsxProtocolDriver.WrapperNE.so```.
 4. Install .NET SDK.
    (https://learn.microsoft.com/en-us/dotnet/core/install/linux-ubuntu-2004)
 5. Change to the workspace directory.  
